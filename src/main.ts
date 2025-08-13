@@ -1,7 +1,7 @@
 import { enableAssert } from 'scenerystack/assert';
 import { Property } from 'scenerystack/axon';
 import { Bounds2, Vector2 } from 'scenerystack/dot';
-import { Shape } from 'scenerystack/kite';
+import { Shape, LineStyles } from 'scenerystack/kite';
 import { optionize3, platform } from 'scenerystack/phet-core';
 import { Display, Node, NodeOptions, Path, Rectangle, RichText } from 'scenerystack/scenery';
 import { Panel } from 'scenerystack/sun';
@@ -190,10 +190,10 @@ class EnteringEdgeNode extends Node {
   }
 
   public updateHighlight(): void {
-    const edgeBounds = this.edge.bounds;
-    const globalBounds = this.edge.parentToGlobalBounds( edgeBounds );
-    const localBounds = this.globalToLocalBounds( globalBounds );
-    this.focusHighlight = Shape.bounds( localBounds.dilated( 10 ) );
+    const edgeShape = this.edge.getArrowShape();
+    const globalShape = edgeShape.transformed( this.edge.getLocalToGlobalMatrix() );
+    const localShape = globalShape.transformed( this.getGlobalToLocalMatrix() );
+    this.focusHighlight = new Shape( [ localShape.getStrokedShape( new LineStyles( { lineWidth: 5 } ) ).subpaths[ 0 ] ] );
   }
 }
 
@@ -215,10 +215,15 @@ class ExitingEdgeNode extends Node {
   }
 
   public updateHighlight(): void {
-    const edgeBounds = this.edge.bounds;
-    const globalBounds = this.edge.parentToGlobalBounds( edgeBounds );
-    const localBounds = this.globalToLocalBounds( globalBounds );
-    this.focusHighlight = Shape.bounds( localBounds.dilated( 10 ) );
+    // const edgeBounds = this.edge.bounds;
+    // const globalBounds = this.edge.parentToGlobalBounds( edgeBounds );
+    // const localBounds = this.globalToLocalBounds( globalBounds );
+    // this.focusHighlight = Shape.bounds( localBounds.dilated( 10 ) );
+
+    const edgeShape = this.edge.getArrowShape();
+    const globalShape = edgeShape.transformed( this.edge.getLocalToGlobalMatrix() );
+    const localShape = globalShape.transformed( this.getGlobalToLocalMatrix() );
+    this.focusHighlight = new Shape( [ localShape.getStrokedShape( new LineStyles( { lineWidth: 5 } ) ).subpaths[ 0 ] ] );
   }
 }
 
@@ -275,6 +280,10 @@ export class MermaidDirectionalEdgeNode extends Node {
 
     this.startNode.registerExitingEdge( this );
     this.endNode.registerEnteringEdge( this );
+  }
+
+  public getArrowShape(): Shape {
+    return this.arrow.shape!;
   }
 
   public static getAttachmentPoint( node: MermaidNode, connection: 'top' | 'bottom' | 'left' | 'right' ): Vector2 {
