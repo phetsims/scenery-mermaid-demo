@@ -77,6 +77,7 @@ export class MermaidNode extends Node {
   public readonly enteringEdgeNodes: EnteringEdgeNode[] = [];
   public readonly exitingEdgeNodes: ExitingEdgeNode[] = [];
 
+  private readonly edgesSummaryNode: Node;
   private readonly enteringEdgesNode: Node;
   private readonly exitingEdgesNode: Node;
   public readonly text: string;
@@ -110,24 +111,32 @@ export class MermaidNode extends Node {
       fill: '#ccc'
     } );
 
+    const edgesSummaryNode = new Node( {
+      tagName: 'p'
+    } );
+
     const enteringEdgesNode = new Node();
     const exitingEdgesNode = new Node();
 
-    options.children = [ shapeNode, textNode, exitingEdgesNode, enteringEdgesNode ];
+    options.children = [ shapeNode, textNode, edgesSummaryNode, exitingEdgesNode, enteringEdgesNode ];
 
     options.tagName = 'div';
     options.focusable = true;
     options.accessibleHeading = options.text;
+    options.accessibleName = options.text;
     options.groupFocusHighlight = true;
     options.accessibleHelpText = options.helpText;
 
     super( options );
 
+    this.edgesSummaryNode = edgesSummaryNode;
     this.enteringEdgesNode = enteringEdgesNode;
     this.exitingEdgesNode = exitingEdgesNode;
     this.text = options.text;
 
     this.focusHighlight = shapeNode.shape!;
+
+    this.updateEdgesSummaryNode();
   }
 
   public getBottomAttachmentPoint(): Vector2 {
@@ -146,9 +155,15 @@ export class MermaidNode extends Node {
     return this.bounds.rightCenter;
   }
 
+  private updateEdgesSummaryNode(): void {
+    const enteringCount = this.enteringEdgeNodes.length;
+    const exitingCount = this.exitingEdgeNodes.length;
+    this.edgesSummaryNode.innerContent = `There are ${exitingCount} link${exitingCount !== 1 ? 's' : ''} exiting this node and ${enteringCount} link${enteringCount !== 1 ? 's' : ''} entering this node.`;
+  }
+
   public registerEnteringEdge( edge: MermaidDirectionalEdgeNode ): void {
     if ( !this.enteringEdgesNode.children.length ) {
-      this.enteringEdgesNode.accessibleHeading = 'Edges entering ' + this.text;
+      this.enteringEdgesNode.accessibleHeading = 'Links entering ' + this.text;
       this.enteringEdgesNode.tagName = 'ul';
     }
 
@@ -157,11 +172,13 @@ export class MermaidNode extends Node {
     this.enteringEdgeNodes.push( enteringEdgeNode );
 
     this.enteringEdgesNode.addChild( enteringEdgeNode );
+
+    this.updateEdgesSummaryNode();
   }
 
   public registerExitingEdge( edge: MermaidDirectionalEdgeNode ): void {
     if ( !this.exitingEdgesNode.children.length ) {
-      this.exitingEdgesNode.accessibleHeading = 'Edges exiting ' + this.text;
+      this.exitingEdgesNode.accessibleHeading = `Links exiting node "${this.text}"`;
       this.exitingEdgesNode.tagName = 'ul';
     }
 
@@ -170,6 +187,8 @@ export class MermaidNode extends Node {
     this.exitingEdgeNodes.push( exitingEdgeNode );
 
     this.exitingEdgesNode.addChild( exitingEdgeNode );
+
+    this.updateEdgesSummaryNode();
   }
 }
 
@@ -179,8 +198,8 @@ class EnteringEdgeNode extends Node {
     super( {
       containerTagName: 'li',
       tagName: 'button',
-      accessibleName: `Edge${edge.text ? ` named ${edge.text}` : ''}`,
-      accessibleHelpText: `Retrace the edge ${edge.text ? `named ${edge.text} ` : ''}, moving back to ${edge.startNode.text}`,
+      accessibleName: `Link${edge.text ? ` named "${edge.text}"` : ''}`,
+      accessibleHelpText: `Retrace the link ${edge.text ? `named "${edge.text}"` : ''}, moving back to the node "${edge.startNode.text}"`,
       focusable: true
     } );
 
@@ -195,7 +214,6 @@ class EnteringEdgeNode extends Node {
     const edgeShape = this.edge.getArrowShape();
     const globalShape = edgeShape.transformed( this.edge.getLocalToGlobalMatrix() );
     const localShape = globalShape.transformed( this.getGlobalToLocalMatrix() );
-    // this.focusHighlight = new Shape( [ localShape.getStrokedShape( new LineStyles( { lineWidth: 5 } ) ).subpaths[ 0 ] ] );
     this.focusHighlight = localShape;
   }
 }
@@ -205,8 +223,8 @@ class ExitingEdgeNode extends Node {
     super( {
       containerTagName: 'li',
       tagName: 'button',
-      accessibleName: `Edge${edge.text ? ` named ${edge.text}` : ''}`,
-      accessibleHelpText: `Follow the edge ${edge.text ? `named ${edge.text} ` : ''}, moving to ${edge.endNode.text}`,
+      accessibleName: `Link${edge.text ? ` named "${edge.text}"` : ''}`,
+      accessibleHelpText: `Follow the link ${edge.text ? `named "${edge.text}"` : ''}, moving to the node "${edge.endNode.text}"`,
       focusable: true
     } );
 
@@ -218,15 +236,9 @@ class ExitingEdgeNode extends Node {
   }
 
   public updateHighlight(): void {
-    // const edgeBounds = this.edge.bounds;
-    // const globalBounds = this.edge.parentToGlobalBounds( edgeBounds );
-    // const localBounds = this.globalToLocalBounds( globalBounds );
-    // this.focusHighlight = Shape.bounds( localBounds.dilated( 10 ) );
-
     const edgeShape = this.edge.getArrowShape();
     const globalShape = edgeShape.transformed( this.edge.getLocalToGlobalMatrix() );
     const localShape = globalShape.transformed( this.getGlobalToLocalMatrix() );
-    // this.focusHighlight = new Shape( [ localShape.getStrokedShape( new LineStyles( { lineWidth: 5 } ) ).subpaths[ 0 ] ] );
     this.focusHighlight = localShape;
   }
 }
@@ -307,7 +319,6 @@ export class MermaidDirectionalEdgeNode extends Node {
   public getArrowShape(): Shape {
     // TODO: transformation bit is a hack
     return this.textNode ? this.textNode._background.shape!.transformed( this.textNode.matrix ).shapeUnion( this.arrow.shape! ) : this.arrow.shape!;
-    // return this.arrow.shape!;
   }
 
   public static getAttachmentPoint( node: MermaidNode, connection: 'top' | 'bottom' | 'left' | 'right' ): Vector2 {
