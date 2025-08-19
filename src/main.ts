@@ -1,7 +1,7 @@
 import { enableAssert } from 'scenerystack/assert';
 import { Property } from 'scenerystack/axon';
 import { Bounds2, Vector2 } from 'scenerystack/dot';
-import { Shape, Cubic, KiteLine, Subpath } from 'scenerystack/kite';
+import { Cubic, KiteLine, Shape, Subpath } from 'scenerystack/kite';
 import { optionize3, platform } from 'scenerystack/phet-core';
 import { AnimatedPanZoomListener, Display, Node, NodeOptions, Path, Rectangle, RichText } from 'scenerystack/scenery';
 import { Panel } from 'scenerystack/sun';
@@ -192,20 +192,25 @@ export class MermaidNode extends Node {
   }
 }
 
-// TODO: shared subclass
-class EnteringEdgeNode extends Node {
-  public constructor( public readonly node: MermaidNode, public readonly edge: MermaidDirectionalEdgeNode ) {
+class EdgeNode extends Node {
+  // Combine the two below classes
+
+  public constructor(
+    public readonly node: MermaidNode,
+    public readonly edge: MermaidDirectionalEdgeNode,
+    public readonly isEntering: boolean
+  ) {
     super( {
       containerTagName: 'li',
       tagName: 'button',
-      accessibleName: `Entering link${edge.text ? ` named "${edge.text}"` : ''}`,
-      accessibleHelpText: `Retrace the link ${edge.text ? `named "${edge.text}"` : ''}, moving back to the node "${edge.startNode.text}"`,
+      accessibleName: `${isEntering ? 'Entering' : 'Exiting'} link${edge.text ? ` named "${edge.text}"` : ''}`,
+      accessibleHelpText: `${isEntering ? 'Retrace' : 'Follow'} the link ${edge.text ? `named "${edge.text}"` : ''}, moving ${isEntering ? 'back ' : ''}to the node "${edge.startNode.text}"`,
       focusable: true
     } );
 
     this.addInputListener( {
       click: () => {
-        edge.startNode.focus();
+        ( isEntering ? edge.startNode : edge.endNode ).focus();
       }
     } );
   }
@@ -218,28 +223,15 @@ class EnteringEdgeNode extends Node {
   }
 }
 
-class ExitingEdgeNode extends Node {
+class EnteringEdgeNode extends EdgeNode {
   public constructor( public readonly node: MermaidNode, public readonly edge: MermaidDirectionalEdgeNode ) {
-    super( {
-      containerTagName: 'li',
-      tagName: 'button',
-      accessibleName: `Exiting link${edge.text ? ` named "${edge.text}"` : ''}`,
-      accessibleHelpText: `Follow the link ${edge.text ? `named "${edge.text}"` : ''}, moving to the node "${edge.endNode.text}"`,
-      focusable: true
-    } );
-
-    this.addInputListener( {
-      click: () => {
-        edge.endNode.focus();
-      }
-    } );
+    super( node, edge, true );
   }
+}
 
-  public updateHighlight(): void {
-    const edgeShape = this.edge.getArrowShape();
-    const globalShape = edgeShape.transformed( this.edge.getLocalToGlobalMatrix() );
-    const localShape = globalShape.transformed( this.getGlobalToLocalMatrix() );
-    this.focusHighlight = localShape;
+class ExitingEdgeNode extends EdgeNode {
+  public constructor( public readonly node: MermaidNode, public readonly edge: MermaidDirectionalEdgeNode ) {
+    super( node, edge, false );
   }
 }
 
@@ -375,7 +367,7 @@ export class MermaidDirectionalEdgeNode extends Node {
         new KiteLine( endPoint, arrowHeadRight ),
         new KiteLine( arrowHeadRight, strokedRight[ 0 ].start ),
         ...strokedRight,
-        new KiteLine( strokedRight[ strokedLeft.length - 1 ].end, strokedLeft[ 0 ].start ),
+        new KiteLine( strokedRight[ strokedLeft.length - 1 ].end, strokedLeft[ 0 ].start )
       ] )
     ] );
 
@@ -387,65 +379,65 @@ export class MermaidDirectionalEdgeNode extends Node {
   }
 }
 
-const doesItWorkNode = new MermaidNode({
+const doesItWorkNode = new MermaidNode( {
   text: 'Does it work?',
   helpText: 'Determine whether the system is functioning properly.',
   shape: 'diamond'
-});
+} );
 
-const dontMessWithItNode = new MermaidNode({
-  text: "Don't mess with it",
+const dontMessWithItNode = new MermaidNode( {
+  text: 'Don\'t mess with it',
   helpText: 'If it works, leave it alone.'
-});
+} );
 
-const didYouMessWithItNode = new MermaidNode({
+const didYouMessWithItNode = new MermaidNode( {
   text: 'Did you mess with it?',
   helpText: 'Check if you were the one who changed anything.',
   shape: 'diamond'
-});
+} );
 
-const youIdiotNode = new MermaidNode({
+const youIdiotNode = new MermaidNode( {
   text: 'You idiot!',
   helpText: 'A humorous response to messing with a working system.'
-});
+} );
 
-const willYouBeBlamedNode = new MermaidNode({
+const willYouBeBlamedNode = new MermaidNode( {
   text: 'Will you be blamed anyway?',
   helpText: 'Will you be held responsible regardless of what happened?',
   shape: 'diamond'
-});
+} );
 
-const forgetAboutItNode = new MermaidNode({
+const forgetAboutItNode = new MermaidNode( {
   text: 'Forget about it!',
   helpText: 'If you won’t be blamed, just let it go.'
-});
+} );
 
-const doesAnyoneElseKnowNode = new MermaidNode({
+const doesAnyoneElseKnowNode = new MermaidNode( {
   text: 'Does anyone else know?',
   helpText: 'Determine if anyone else is aware of the problem.',
   shape: 'diamond'
-});
+} );
 
-const hideItNode = new MermaidNode({
+const hideItNode = new MermaidNode( {
   text: 'Hide it',
   helpText: 'A funny suggestion to cover up the issue.'
-});
+} );
 
-const youreToastNode = new MermaidNode({
-  text: "You're toast!",
+const youreToastNode = new MermaidNode( {
+  text: 'You\'re toast!',
   helpText: 'If others know and you’re responsible, you\'re in trouble.'
-});
+} );
 
-const canYouBlameNode = new MermaidNode({
+const canYouBlameNode = new MermaidNode( {
   text: 'Can you blame someone else?',
   helpText: 'Try to redirect blame if possible.',
   shape: 'diamond'
-});
+} );
 
-const noProblemNode = new MermaidNode({
+const noProblemNode = new MermaidNode( {
   text: 'No problem!',
   helpText: 'Success! You’ve dodged the issue.'
-});
+} );
 
 const nodes = [
   doesItWorkNode,
@@ -495,8 +487,8 @@ const transformNode = new Node( { children: [ graphNode ] } );
 rootNode.addChild( transformNode );
 
 const zoomListener = new AnimatedPanZoomListener( transformNode, {
-      maxScale: 10,
-    } );
+  maxScale: 10
+} );
 rootNode.addInputListener( zoomListener );
 
 // Center the text and the rectangle dynamically
@@ -562,5 +554,5 @@ display.updateOnRequestAnimationFrame( ( dt ) => {
     resize();
   }
 
-  zoomListener.step(dt);
+  zoomListener.step( dt );
 } );
