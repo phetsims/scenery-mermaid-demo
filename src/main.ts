@@ -3,7 +3,7 @@ import { Property } from 'scenerystack/axon';
 import { Bounds2, Vector2 } from 'scenerystack/dot';
 import { Shape, Cubic, KiteLine, Subpath } from 'scenerystack/kite';
 import { optionize3, platform } from 'scenerystack/phet-core';
-import { Display, Node, NodeOptions, Path, Rectangle, RichText } from 'scenerystack/scenery';
+import { AnimatedPanZoomListener, Display, Node, NodeOptions, Path, Rectangle, RichText } from 'scenerystack/scenery';
 import { Panel } from 'scenerystack/sun';
 import { PhetFont } from 'scenerystack/scenery-phet';
 
@@ -198,7 +198,7 @@ class EnteringEdgeNode extends Node {
     super( {
       containerTagName: 'li',
       tagName: 'button',
-      accessibleName: `Link${edge.text ? ` named "${edge.text}"` : ''}`,
+      accessibleName: `Entering link${edge.text ? ` named "${edge.text}"` : ''}`,
       accessibleHelpText: `Retrace the link ${edge.text ? `named "${edge.text}"` : ''}, moving back to the node "${edge.startNode.text}"`,
       focusable: true
     } );
@@ -223,7 +223,7 @@ class ExitingEdgeNode extends Node {
     super( {
       containerTagName: 'li',
       tagName: 'button',
-      accessibleName: `Link${edge.text ? ` named "${edge.text}"` : ''}`,
+      accessibleName: `Exiting link${edge.text ? ` named "${edge.text}"` : ''}`,
       accessibleHelpText: `Follow the link ${edge.text ? `named "${edge.text}"` : ''}, moving to the node "${edge.endNode.text}"`,
       focusable: true
     } );
@@ -491,7 +491,13 @@ const graphNode = new Node( {
     ...edges
   ]
 } );
-rootNode.addChild( graphNode );
+const transformNode = new Node( { children: [ graphNode ] } );
+rootNode.addChild( transformNode );
+
+const zoomListener = new AnimatedPanZoomListener( transformNode, {
+      maxScale: 10,
+    } );
+rootNode.addInputListener( zoomListener );
 
 // Center the text and the rectangle dynamically
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -501,6 +507,9 @@ layoutBoundsProperty.link( ( bounds ) => {
 
   const dx = 200;
   const dy = 120;
+
+  zoomListener.setTargetBounds( bounds );
+  zoomListener.setPanBounds( bounds );
 
   const place = ( node: Node, col: number, row: number ) => {
     node.centerX = centerX + col * dx;
@@ -552,4 +561,6 @@ display.updateOnRequestAnimationFrame( ( dt ) => {
   if ( resizePending ) {
     resize();
   }
+
+  zoomListener.step(dt);
 } );
