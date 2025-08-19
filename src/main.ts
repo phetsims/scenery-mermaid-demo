@@ -25,7 +25,7 @@ const rootNode = new Node();
 // Display will render the scene graph to the DOM
 const display = new Display( rootNode, {
   allowSceneOverflow: false,
-  backgroundColor: '#eee',
+  backgroundColor: '#333',
   listenToOnlyElement: false,
   assumeFullWindow: true
 } );
@@ -315,112 +315,103 @@ export class MermaidDirectionalEdgeNode extends Node {
   }
 }
 
-const startNode = new MermaidNode( {
-  text: 'Start',
-  helpText: 'This is the starting point of the design process.'
-} );
-
-const identifyNode = new MermaidNode( {
-  text: 'Identify purpose of design',
-  helpText: 'This node represents the first step in the design process, where you identify the purpose of your design.'
-} );
-
-const brainstormNode = new MermaidNode( {
-  text: 'Brainstorm options',
-  helpText: 'In this step, you brainstorm various options for your design. This is a creative phase where you can think freely about different possibilities.'
-} );
-
-const finalizeNode = new MermaidNode( {
-  text: 'Finalize an idea',
-  helpText: 'After brainstorming, you need to finalize one of the ideas to move forward with the design process.'
-} );
-
-const developNode = new MermaidNode( {
-  text: 'Develop prototype',
-  helpText: 'In this step, you develop a prototype based on the finalized idea. This is where you start to create a tangible version of your design.'
-} );
-
-const successfulNode = new MermaidNode( {
-  text: 'Successful prototype?',
-  helpText: 'Follow the edge labeled "Yes" if the prototype is successful, or "No" if it is not.',
+const doesItWorkNode = new MermaidNode({
+  text: 'Does it work?',
+  helpText: 'Determine whether the system is functioning properly.',
   shape: 'diamond'
-} );
+});
 
-const fixedNode = new MermaidNode( {
-  text: 'Can the problem be fixed?',
-  helpText: 'Follow the edge labeled "Yes" if the problem can be fixed, or "No" if it cannot.',
+const dontMessWithItNode = new MermaidNode({
+  text: "Don't mess with it",
+  helpText: 'If it works, leave it alone.'
+});
+
+const didYouMessWithItNode = new MermaidNode({
+  text: 'Did you mess with it?',
+  helpText: 'Check if you were the one who changed anything.',
   shape: 'diamond'
-} );
+});
 
-const abandonNode = new MermaidNode( {
-  text: 'Abandon prototype',
-  helpText: 'If the problem cannot be fixed, you may need to abandon the prototype and return to the brainstorming phase.'
-} );
+const youIdiotNode = new MermaidNode({
+  text: 'You idiot!',
+  helpText: 'A humorous response to messing with a working system.'
+});
 
-const communicateNode = new MermaidNode( {
-  text: 'Communicate result',
-  helpText: 'In this step, you communicate the results of your prototype development. This is important for sharing your findings and getting feedback.'
-} );
+const willYouBeBlamedNode = new MermaidNode({
+  text: 'Will you be blamed anyway?',
+  helpText: 'Will you be held responsible regardless of what happened?',
+  shape: 'diamond'
+});
 
-const refineNode = new MermaidNode( {
-  text: 'Refine design',
-  helpText: 'After communicating the results, you may need to refine your design based on feedback and further analysis.'
-} );
+const forgetAboutItNode = new MermaidNode({
+  text: 'Forget about it!',
+  helpText: 'If you won’t be blamed, just let it go.'
+});
 
-const endNode = new MermaidNode( {
-  text: 'End',
-  helpText: 'This is the end of the design process. You have either successfully developed a prototype or abandoned it to return to brainstorming.'
-} );
+const doesAnyoneElseKnowNode = new MermaidNode({
+  text: 'Does anyone else know?',
+  helpText: 'Determine if anyone else is aware of the problem.',
+  shape: 'diamond'
+});
+
+const hideItNode = new MermaidNode({
+  text: 'Hide it',
+  helpText: 'A funny suggestion to cover up the issue.'
+});
+
+const youreToastNode = new MermaidNode({
+  text: "You're toast!",
+  helpText: 'If others know and you’re responsible, you\'re in trouble.'
+});
+
+const canYouBlameNode = new MermaidNode({
+  text: 'Can you blame someone else?',
+  helpText: 'Try to redirect blame if possible.',
+  shape: 'diamond'
+});
+
+const noProblemNode = new MermaidNode({
+  text: 'No problem!',
+  helpText: 'Success! You’ve dodged the issue.'
+});
 
 const nodes = [
-  startNode,
-  identifyNode,
-  brainstormNode,
-  finalizeNode,
-  developNode,
-  successfulNode,
-  communicateNode,
-  refineNode,
-  endNode,
-  fixedNode,
-  abandonNode
+  doesItWorkNode,
+  dontMessWithItNode,
+  didYouMessWithItNode,
+  youIdiotNode,
+  willYouBeBlamedNode,
+  forgetAboutItNode,
+  doesAnyoneElseKnowNode,
+  hideItNode,
+  youreToastNode,
+  canYouBlameNode,
+  noProblemNode
 ];
 
-const startEdge = new MermaidDirectionalEdgeNode( startNode, identifyNode, 'bottom', 'top' );
-const identifyEdge = new MermaidDirectionalEdgeNode( identifyNode, brainstormNode, 'bottom', 'top' );
-const brainstormEdge = new MermaidDirectionalEdgeNode( brainstormNode, finalizeNode, 'bottom', 'top' );
-const finalizeEdge = new MermaidDirectionalEdgeNode( finalizeNode, developNode, 'bottom', 'top' );
-const developEdge = new MermaidDirectionalEdgeNode( developNode, successfulNode, 'right', 'left' );
-const successfulNoEdge = new MermaidDirectionalEdgeNode( successfulNode, fixedNode, 'right', 'left', {
-  text: 'No'
-} );
-const successfulYesEdge = new MermaidDirectionalEdgeNode( successfulNode, communicateNode, 'bottom', 'top', {
-  text: 'Yes'
-} );
-const communicateEdge = new MermaidDirectionalEdgeNode( communicateNode, refineNode, 'right', 'left' );
-const refineEdge = new MermaidDirectionalEdgeNode( refineNode, endNode, 'right', 'left' );
-const fixedNoEdge = new MermaidDirectionalEdgeNode( fixedNode, abandonNode, 'right', 'right', {
-  text: 'No'
-} );
-const fixedYesEdge = new MermaidDirectionalEdgeNode( fixedNode, developNode, 'top', 'top', {
-  text: 'Yes'
-} );
-const abandonEdge = new MermaidDirectionalEdgeNode( abandonNode, brainstormNode, 'left', 'right' );
+const e1 = new MermaidDirectionalEdgeNode( doesItWorkNode, dontMessWithItNode, 'left', 'top', { text: 'Yes' } );
+const e2 = new MermaidDirectionalEdgeNode( doesItWorkNode, didYouMessWithItNode, 'right', 'top', { text: 'No' } );
 
-const edges = [
-  startEdge,
-  identifyEdge,
-  brainstormEdge,
-  finalizeEdge,
-  developEdge,
-  successfulNoEdge,
-  successfulYesEdge,
-  communicateEdge,
-  refineEdge,
-  fixedNoEdge,
-  fixedYesEdge,
-  abandonEdge
-];
+const e3 = new MermaidDirectionalEdgeNode( didYouMessWithItNode, youIdiotNode, 'left', 'right', { text: 'Yes' } );
+const e4 = new MermaidDirectionalEdgeNode( didYouMessWithItNode, willYouBeBlamedNode, 'bottom', 'top', { text: 'No' } );
+
+const e5 = new MermaidDirectionalEdgeNode( youIdiotNode, doesAnyoneElseKnowNode, 'left', 'right' );
+
+const e6 = new MermaidDirectionalEdgeNode( doesAnyoneElseKnowNode, hideItNode, 'left', 'top', { text: 'No' } );
+const e7 = new MermaidDirectionalEdgeNode( doesAnyoneElseKnowNode, youreToastNode, 'bottom', 'top', { text: 'Yes' } );
+
+const e8 = new MermaidDirectionalEdgeNode( willYouBeBlamedNode, youreToastNode, 'left', 'right', { text: 'Yes' } );
+const e9 = new MermaidDirectionalEdgeNode( willYouBeBlamedNode, forgetAboutItNode, 'bottom', 'top', { text: 'No' } );
+
+const e10 = new MermaidDirectionalEdgeNode( youreToastNode, canYouBlameNode, 'bottom', 'top' );
+const e11 = new MermaidDirectionalEdgeNode( canYouBlameNode, youreToastNode, 'left', 'left', { text: 'No' } );
+const e12 = new MermaidDirectionalEdgeNode( canYouBlameNode, noProblemNode, 'bottom', 'top', { text: 'Yes' } );
+
+const e13 = new MermaidDirectionalEdgeNode( hideItNode, noProblemNode, 'bottom', 'left' );
+const e14 = new MermaidDirectionalEdgeNode( forgetAboutItNode, noProblemNode, 'bottom', 'right' );
+const e15 = new MermaidDirectionalEdgeNode( dontMessWithItNode, noProblemNode, 'bottom', 'left' );
+
+const edges = [ e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15 ];
 
 rootNode.children = [
   ...nodes,
@@ -430,35 +421,32 @@ rootNode.children = [
 // Center the text and the rectangle dynamically
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 layoutBoundsProperty.link( ( bounds ) => {
-  const xPadding = 60;
-  const yPadding = 60;
+  const centerX = bounds.centerX;
+  const topY = 100;
 
-  const leftNodes = [ startNode, identifyNode, brainstormNode, finalizeNode, developNode, communicateNode ];
-  const maxLeftWidth = Math.max( ...leftNodes.map( node => node.width ) );
+  const dx = 200;
+  const dy = 120;
 
-  for ( const leftNode of leftNodes ) {
-    leftNode.centerX = 10 + maxLeftWidth / 2;
-  }
+  const place = ( node: Node, col: number, row: number ) => {
+    node.centerX = centerX + col * dx;
+    node.centerY = topY + row * dy;
+  };
 
-  startNode.top = 10;
-  for ( let i = 1; i < leftNodes.length; i++ ) {
-    leftNodes[ i ].top = leftNodes[ i - 1 ].bottom + yPadding;
-  }
+  place( doesItWorkNode, 0, 0 );
 
-  successfulNode.left = xPadding + developNode.right;
-  successfulNode.centerY = developNode.centerY;
+  place( dontMessWithItNode, -1.5, 1 );
+  place( didYouMessWithItNode, 1.5, 1 );
 
-  fixedNode.left = xPadding + successfulNode.right;
-  fixedNode.centerY = successfulNode.centerY;
+  place( youIdiotNode, 0.5, 1.5 );
+  place( doesAnyoneElseKnowNode, -0.5, 1.5 );
+  place( willYouBeBlamedNode, 1.5, 2.5 );
 
-  refineNode.left = xPadding + communicateNode.right;
-  refineNode.centerY = communicateNode.centerY;
+  place( hideItNode, -1, 3 );
+  place( youreToastNode, 0, 3 );
+  place( forgetAboutItNode, 1.5, 4 );
 
-  endNode.left = xPadding + refineNode.right;
-  endNode.centerY = refineNode.centerY;
-
-  abandonNode.left = xPadding + brainstormNode.right;
-  abandonNode.centerY = brainstormNode.centerY;
+  place( canYouBlameNode, 0, 4 );
+  place( noProblemNode, 0, 5.5 );
 
   for ( const edge of edges ) {
     edge.updateArrow();
@@ -477,7 +465,4 @@ display.updateOnRequestAnimationFrame( ( dt ) => {
   if ( resizePending ) {
     resize();
   }
-
-  // Rotate the rectangle
-  // rotatingRectangle.rotation += 2 * dt;
 } );
