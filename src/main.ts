@@ -485,10 +485,13 @@ const e15 = new MermaidDirectionalEdgeNode( dontMessWithItNode, noProblemNode, '
 
 const edges = [ e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15 ];
 
-rootNode.children = [
-  ...nodes,
-  ...edges
-];
+const graphNode = new Node( {
+  children: [
+    ...nodes,
+    ...edges
+  ]
+} );
+rootNode.addChild( graphNode );
 
 // Center the text and the rectangle dynamically
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -529,6 +532,18 @@ layoutBoundsProperty.link( ( bounds ) => {
       edgeNode.updateHighlight();
     }
   }
+
+  // TODO: remove above logic that is duplicated with this
+  const hardPadding = 50;
+  const availableWidth = bounds.width - 2 * hardPadding;
+  const availableHeight = bounds.height - 2 * hardPadding;
+  const localWidth = graphNode.localWidth;
+  const localHeight = graphNode.localHeight;
+
+  const scale = Math.min( availableWidth / localWidth, availableHeight / localHeight );
+  graphNode.setScaleMagnitude( scale );
+
+  graphNode.center = bounds.center;
 } );
 
 // Frame step logic
