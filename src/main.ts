@@ -1,11 +1,11 @@
 import { enableAssert } from 'scenerystack/assert';
 import { Property } from 'scenerystack/axon';
 import { Bounds2, Vector2 } from 'scenerystack/dot';
-import { Shape, LineStyles } from 'scenerystack/kite';
+import { Shape, Cubic, KiteLine, Subpath } from 'scenerystack/kite';
 import { optionize3, platform } from 'scenerystack/phet-core';
 import { Display, Node, NodeOptions, Path, Rectangle, RichText } from 'scenerystack/scenery';
 import { Panel } from 'scenerystack/sun';
-import { ArrowNode, PhetFont } from 'scenerystack/scenery-phet';
+import { PhetFont } from 'scenerystack/scenery-phet';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -25,7 +25,7 @@ const rootNode = new Node();
 // Display will render the scene graph to the DOM
 const display = new Display( rootNode, {
   allowSceneOverflow: false,
-  backgroundColor: '#333',
+  backgroundColor: '#444',
   listenToOnlyElement: false,
   assumeFullWindow: true
 } );
@@ -126,6 +126,8 @@ export class MermaidNode extends Node {
     this.enteringEdgesNode = enteringEdgesNode;
     this.exitingEdgesNode = exitingEdgesNode;
     this.text = options.text;
+
+    this.focusHighlight = shapeNode.shape!;
   }
 
   public getBottomAttachmentPoint(): Vector2 {
@@ -193,7 +195,8 @@ class EnteringEdgeNode extends Node {
     const edgeShape = this.edge.getArrowShape();
     const globalShape = edgeShape.transformed( this.edge.getLocalToGlobalMatrix() );
     const localShape = globalShape.transformed( this.getGlobalToLocalMatrix() );
-    this.focusHighlight = new Shape( [ localShape.getStrokedShape( new LineStyles( { lineWidth: 5 } ) ).subpaths[ 0 ] ] );
+    // this.focusHighlight = new Shape( [ localShape.getStrokedShape( new LineStyles( { lineWidth: 5 } ) ).subpaths[ 0 ] ] );
+    this.focusHighlight = localShape;
   }
 }
 
@@ -223,23 +226,37 @@ class ExitingEdgeNode extends Node {
     const edgeShape = this.edge.getArrowShape();
     const globalShape = edgeShape.transformed( this.edge.getLocalToGlobalMatrix() );
     const localShape = globalShape.transformed( this.getGlobalToLocalMatrix() );
-    this.focusHighlight = new Shape( [ localShape.getStrokedShape( new LineStyles( { lineWidth: 5 } ) ).subpaths[ 0 ] ] );
+    // this.focusHighlight = new Shape( [ localShape.getStrokedShape( new LineStyles( { lineWidth: 5 } ) ).subpaths[ 0 ] ] );
+    this.focusHighlight = localShape;
   }
 }
 
 type MermaidDirectionalEdgeNodeSelfOptions = {
   text?: string | null;
+  startOffset?: Vector2;
+  endOffset?: Vector2;
+  startTangentDistance?: number;
+  endTangentDistance?: number;
 };
 
 export type MermaidDirectionalEdgeNodeOptions = MermaidDirectionalEdgeNodeSelfOptions & NodeOptions;
 
 const MERMAID_DIRECTIONAL_EDGE_DEFAULT_OPTIONS = {
-  text: null
+  text: null,
+  startOffset: Vector2.ZERO,
+  endOffset: Vector2.ZERO,
+  startTangentDistance: 50,
+  endTangentDistance: 50
 } as const;
 
 export class MermaidDirectionalEdgeNode extends Node {
-  private arrow: ArrowNode;
-  private textNode: Node | null = null;
+  private arrow: Path;
+  private textNode: Panel | null = null;
+
+  private startOffset: Vector2;
+  private endOffset: Vector2;
+  private startTangentDistance: number;
+  private endTangentDistance: number;
 
   public readonly text: string | null;
 
@@ -258,8 +275,13 @@ export class MermaidDirectionalEdgeNode extends Node {
 
     this.text = options.text;
 
-    this.arrow = new ArrowNode( 0, 0, 100, 0, {
-      tailWidth: 1
+    this.startOffset = options.startOffset;
+    this.endOffset = options.endOffset;
+    this.startTangentDistance = options.startTangentDistance;
+    this.endTangentDistance = options.endTangentDistance;
+
+    this.arrow = new Path( null, {
+      fill: 'black'
     } );
 
     this.addChild( this.arrow );
@@ -283,7 +305,9 @@ export class MermaidDirectionalEdgeNode extends Node {
   }
 
   public getArrowShape(): Shape {
-    return this.arrow.shape!;
+    // TODO: transformation bit is a hack
+    return this.textNode ? this.textNode._background.shape!.transformed( this.textNode.matrix ).shapeUnion( this.arrow.shape! ) : this.arrow.shape!;
+    // return this.arrow.shape!;
   }
 
   public static getAttachmentPoint( node: MermaidNode, connection: 'top' | 'bottom' | 'left' | 'right' ): Vector2 {
@@ -302,15 +326,52 @@ export class MermaidDirectionalEdgeNode extends Node {
   }
 
   public updateArrow() {
-    const startPoint = MermaidDirectionalEdgeNode.getAttachmentPoint( this.startNode, this.startConnection );
-    const endPoint = MermaidDirectionalEdgeNode.getAttachmentPoint( this.endNode, this.endConnection );
+    const arrowHeadLength = 15;
+    const arrowHeadWidth = 12;
+    const lineWidth = 2;
 
-    this.arrow.setTailAndTip( startPoint.x, startPoint.y, endPoint.x, endPoint.y );
+    const startPoint = MermaidDirectionalEdgeNode.getAttachmentPoint( this.startNode, this.startConnection ).plus( this.startOffset );
+    const endPoint = MermaidDirectionalEdgeNode.getAttachmentPoint( this.endNode, this.endConnection ).plus( this.endOffset );
+
+    const tangentMap = {
+      top: new Vector2( 0, -1 ),
+      bottom: new Vector2( 0, 1 ),
+      left: new Vector2( -1, 0 ),
+      right: new Vector2( 1, 0 )
+    } as const;
+
+    const startTangent = tangentMap[ this.startConnection ];
+    const endTangent = tangentMap[ this.endConnection ];
+
+    const bezierStartPoint = startPoint;
+    const bezierEndPoint = endPoint.plus( endTangent.timesScalar( arrowHeadLength ) ); // allow some overlap(?)
+
+    const bezierControlPoint1 = bezierStartPoint.plus( startTangent.timesScalar( this.startTangentDistance ) );
+    const bezierControlPoint2 = bezierEndPoint.plus( endTangent.timesScalar( this.endTangentDistance ) );
+
+    const arrowHeadLeft = bezierEndPoint.plus( endTangent.perpendicular.timesScalar( arrowHeadWidth / 2 ) );
+    const arrowHeadRight = bezierEndPoint.plus( endTangent.perpendicular.timesScalar( -arrowHeadWidth / 2 ) );
+
+    const mainCubic = new Cubic( bezierStartPoint, bezierControlPoint1, bezierControlPoint2, bezierEndPoint );
+    const strokedLeft = mainCubic.strokeLeft( lineWidth );
+    const strokedRight = mainCubic.strokeRight( lineWidth );
+
+    const arrowShape = new Shape( [
+      new Subpath( [
+        ...strokedLeft,
+        new KiteLine( strokedLeft[ strokedLeft.length - 1 ].end, arrowHeadLeft ),
+        new KiteLine( arrowHeadLeft, endPoint ),
+        new KiteLine( endPoint, arrowHeadRight ),
+        new KiteLine( arrowHeadRight, strokedRight[ 0 ].start ),
+        ...strokedRight,
+        new KiteLine( strokedRight[ strokedLeft.length - 1 ].end, strokedLeft[ 0 ].start ),
+      ] )
+    ] );
+
+    this.arrow.shape = arrowShape;
 
     if ( this.textNode ) {
-      // Position the text in the middle of the arrow
-      this.textNode.centerX = this.arrow.centerX;
-      this.textNode.centerY = this.arrow.centerY;
+      this.textNode.center = mainCubic.positionAt( 0.5 );
     }
   }
 }
@@ -397,7 +458,7 @@ const e4 = new MermaidDirectionalEdgeNode( didYouMessWithItNode, willYouBeBlamed
 
 const e5 = new MermaidDirectionalEdgeNode( youIdiotNode, doesAnyoneElseKnowNode, 'left', 'right' );
 
-const e6 = new MermaidDirectionalEdgeNode( doesAnyoneElseKnowNode, hideItNode, 'left', 'top', { text: 'No' } );
+const e6 = new MermaidDirectionalEdgeNode( doesAnyoneElseKnowNode, hideItNode, 'left', 'top', { text: 'No', startTangentDistance: 22 } );
 const e7 = new MermaidDirectionalEdgeNode( doesAnyoneElseKnowNode, youreToastNode, 'bottom', 'top', { text: 'Yes' } );
 
 const e8 = new MermaidDirectionalEdgeNode( willYouBeBlamedNode, youreToastNode, 'left', 'right', { text: 'Yes' } );
@@ -407,9 +468,9 @@ const e10 = new MermaidDirectionalEdgeNode( youreToastNode, canYouBlameNode, 'bo
 const e11 = new MermaidDirectionalEdgeNode( canYouBlameNode, youreToastNode, 'left', 'left', { text: 'No' } );
 const e12 = new MermaidDirectionalEdgeNode( canYouBlameNode, noProblemNode, 'bottom', 'top', { text: 'Yes' } );
 
-const e13 = new MermaidDirectionalEdgeNode( hideItNode, noProblemNode, 'bottom', 'left' );
+const e13 = new MermaidDirectionalEdgeNode( hideItNode, noProblemNode, 'bottom', 'top', { endOffset: new Vector2( -30, 0 ) } );
 const e14 = new MermaidDirectionalEdgeNode( forgetAboutItNode, noProblemNode, 'bottom', 'right' );
-const e15 = new MermaidDirectionalEdgeNode( dontMessWithItNode, noProblemNode, 'bottom', 'left' );
+const e15 = new MermaidDirectionalEdgeNode( dontMessWithItNode, noProblemNode, 'bottom', 'left', { endTangentDistance: 200 } );
 
 const edges = [ e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15 ];
 
