@@ -204,7 +204,7 @@ class EdgeNode extends Node {
       containerTagName: 'li',
       tagName: 'button',
       accessibleName: `${isEntering ? 'Entering' : 'Exiting'} link${edge.text ? ` named "${edge.text}"` : ''}`,
-      accessibleHelpText: `${isEntering ? 'Retrace' : 'Follow'} the link ${edge.text ? `named "${edge.text}"` : ''}, moving ${isEntering ? 'back ' : ''}to the node "${edge.startNode.text}"`,
+      accessibleHelpText: `${isEntering ? 'Retrace' : 'Follow'} the link ${edge.text ? `named "${edge.text}"` : ''}, moving ${isEntering ? 'back ' : ''}to the node "${( isEntering ? edge.startNode : edge.endNode ).text}"`,
       focusable: true
     } );
 
